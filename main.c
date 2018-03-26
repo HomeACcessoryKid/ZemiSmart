@@ -20,13 +20,13 @@
 
 #include <homekit/homekit.h>
 #include <homekit/characteristics.h>
-#include "wifi.h"
+//#include "wifi.h"
 
 #include <math.h>  //requires LIBS ?= hal m to be added to Makefile
 #include "mjpwm.h"
 
 
-static void wifi_init() {
+/*static void wifi_init() {
     struct sdk_station_config wifi_config = {
         .ssid = WIFI_SSID,
         .password = WIFI_PASSWORD,
@@ -35,7 +35,7 @@ static void wifi_init() {
     sdk_wifi_set_opmode(STATION_MODE);
     sdk_wifi_station_set_config(&wifi_config);
     sdk_wifi_station_connect();
-}
+} */
 
 //http://blog.saikoled.com/post/44677718712/how-to-convert-from-hsi-to-rgb-white
 void hsi2rgbw(float h, float s, float i, int* rgbw) {
@@ -235,7 +235,7 @@ homekit_server_config_t config = {
 void user_init(void) {
     uart_set_baud(0, 115200);
 
-    wifi_init();
+//    wifi_init();
     light_init();
     homekit_server_init(&config);
 }
