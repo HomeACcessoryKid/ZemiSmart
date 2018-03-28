@@ -233,9 +233,18 @@ homekit_server_config_t config = {
 };
 
 void user_init(void) {
-    uart_set_baud(0, 115200);
+    uart_set_baud(0,  74880);
+//    uart_set_baud(0, 115200);
 
-//    wifi_init();
     light_init();
+//    wifi_init();
+//     if (sdk_wifi_station_get_connect_status() != STATION_GOT_IP) {
+//         //INFO("Waiting for IP");
+//         while (sdk_wifi_station_get_connect_status() != STATION_GOT_IP) {
+//             vTaskDelay(1000 / portTICK_PERIOD_MS);
+//         }
+// 
+//         //INFO("Got IP, starting");
+//     }
     homekit_server_init(&config);
 }
