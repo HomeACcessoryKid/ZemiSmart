@@ -209,7 +209,7 @@ homekit_accessory_t *accessories[] = {
                     HOMEKIT_CHARACTERISTIC(MANUFACTURER, "HomeAccessoryKid"),
                     HOMEKIT_CHARACTERISTIC(SERIAL_NUMBER, "1"),
                     HOMEKIT_CHARACTERISTIC(MODEL, "ZemiSmart"),
-                    HOMEKIT_CHARACTERISTIC(FIRMWARE_REVISION, "0.0.2"),
+                    HOMEKIT_CHARACTERISTIC(FIRMWARE_REVISION, "0.0.3"),
                     HOMEKIT_CHARACTERISTIC(IDENTIFY, light_identify),
                     NULL
                 }),
@@ -237,9 +237,24 @@ homekit_accessory_t *accessories[] = {
                     ),
                     NULL
                 }),
-            HOMEKIT_SERVICE(SWITCH, .primary=false,
+            NULL
+        }),
+    HOMEKIT_ACCESSORY(
+        .id=2,
+        .category=homekit_accessory_category_switch,
+        .services=(homekit_service_t*[]){
+            HOMEKIT_SERVICE(ACCESSORY_INFORMATION,
                 .characteristics=(homekit_characteristic_t*[]){
-                    HOMEKIT_CHARACTERISTIC(NAME, "light-OTA"),
+                    HOMEKIT_CHARACTERISTIC(NAME, "LightOTA"),
+                    HOMEKIT_CHARACTERISTIC(MANUFACTURER, "HomeAccessoryKid"),
+                    HOMEKIT_CHARACTERISTIC(SERIAL_NUMBER, "1"),
+                    HOMEKIT_CHARACTERISTIC(MODEL, "ZemiSmart"),
+                    HOMEKIT_CHARACTERISTIC(FIRMWARE_REVISION, "0.0.3"),
+                    HOMEKIT_CHARACTERISTIC(IDENTIFY, light_identify),
+                    NULL
+                }),
+            HOMEKIT_SERVICE(SWITCH, .primary=true,
+                .characteristics=(homekit_characteristic_t*[]){
                     HOMEKIT_CHARACTERISTIC(
                         ON, false,
                         .setter=light_ota_set
