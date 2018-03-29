@@ -25,6 +25,7 @@
 #include <math.h>  //requires LIBS ?= hal m to be added to Makefile
 #include "mjpwm.h"
 
+#include <rboot-api.h> //include this in your own code for ota support
 
 /*static void wifi_init() {
     struct sdk_station_config wifi_config = {
@@ -162,6 +163,20 @@ void light_sat_set(homekit_value_t value) {
     lightSET();
 }
 
+void light_ota_set(homekit_value_t value) {
+    if (value.format != homekit_format_bool) {
+        printf("Invalid ota-value format: %d\n", value.format);
+        return;
+    }
+    if (value.bool_value) {
+        // these two lines are the ONLY thing needed for a repo to support ota after having started with ota-boot
+        // in ota-boot the user gets to set the wifi and the repository details and it then installs the ota-main binary
+        rboot_set_temp_rom(1); //select the OTA main routine
+        sdk_system_restart();  //#include <rboot-api.h>
+        // there is a bug in the esp SDK such that if you do not power cycle the chip after flashing, restart is unreliable
+    }
+}
+
 
 void light_identify_task(void *_args) {
     for (int i=0;i<5;i++) {
@@ -191,10 +206,10 @@ homekit_accessory_t *accessories[] = {
             HOMEKIT_SERVICE(ACCESSORY_INFORMATION,
                 .characteristics=(homekit_characteristic_t*[]){
                     HOMEKIT_CHARACTERISTIC(NAME, "Light"),
-                    HOMEKIT_CHARACTERISTIC(MANUFACTURER, "HacK"),
+                    HOMEKIT_CHARACTERISTIC(MANUFACTURER, "HomeAccessoryKid"),
                     HOMEKIT_CHARACTERISTIC(SERIAL_NUMBER, "1"),
                     HOMEKIT_CHARACTERISTIC(MODEL, "ZemiSmart"),
-                    //HOMEKIT_CHARACTERISTIC(FIRMWARE_REVISION, "0.1"),
+                    HOMEKIT_CHARACTERISTIC(FIRMWARE_REVISION, "0.0.2"),
                     HOMEKIT_CHARACTERISTIC(IDENTIFY, light_identify),
                     NULL
                 }),
@@ -222,6 +237,15 @@ homekit_accessory_t *accessories[] = {
                     ),
                     NULL
                 }),
+            HOMEKIT_SERVICE(SWITCH, .primary=false,
+                .characteristics=(homekit_characteristic_t*[]){
+                    HOMEKIT_CHARACTERISTIC(NAME, "light-OTA"),
+                    HOMEKIT_CHARACTERISTIC(
+                        ON, false,
+                        .setter=light_ota_set
+                    ),
+                    NULL
+                }),
             NULL
         }),
     NULL
@@ -233,8 +257,7 @@ homekit_server_config_t config = {
 };
 
 void user_init(void) {
-    uart_set_baud(0,  74880);
-//    uart_set_baud(0, 115200);
+    uart_set_baud(0, 115200);
 
     light_init();
 //    wifi_init();

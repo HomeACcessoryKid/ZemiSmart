@@ -2,6 +2,7 @@ PROGRAM = main
 
 EXTRA_COMPONENTS = \
 	extras/http-parser \
+	extras/rboot-ota \
 	$(abspath esp-wolfssl) \
 	$(abspath esp-cjson) \
 	$(abspath esp-homekit)
