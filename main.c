@@ -173,7 +173,7 @@ void light_ota_set(homekit_value_t value) {
         // in ota-boot the user gets to set the wifi and the repository details and it then installs the ota-main binary
         rboot_set_temp_rom(1); //select the OTA main routine
         sdk_system_restart();  //#include <rboot-api.h>
-        // there is a bug in the esp SDK such that if you do not power cycle the chip after flashing, restart is unreliable
+        // there is a bug in the esp SDK such that if you do not power cycle the chip after serial flashing, restart is unreliable
     }
 }
 
@@ -202,6 +202,7 @@ homekit_accessory_t *accessories[] = {
     HOMEKIT_ACCESSORY(
         .id=1,
         .category=homekit_accessory_category_lightbulb,
+        .config_number=4,
         .services=(homekit_service_t*[]){
             HOMEKIT_SERVICE(ACCESSORY_INFORMATION,
                 .characteristics=(homekit_characteristic_t*[]){
@@ -209,7 +210,7 @@ homekit_accessory_t *accessories[] = {
                     HOMEKIT_CHARACTERISTIC(MANUFACTURER, "HomeAccessoryKid"),
                     HOMEKIT_CHARACTERISTIC(SERIAL_NUMBER, "1"),
                     HOMEKIT_CHARACTERISTIC(MODEL, "ZemiSmart"),
-                    HOMEKIT_CHARACTERISTIC(FIRMWARE_REVISION, "0.0.3"),
+                    HOMEKIT_CHARACTERISTIC(FIRMWARE_REVISION, "0.0.4"),
                     HOMEKIT_CHARACTERISTIC(IDENTIFY, light_identify),
                     NULL
                 }),
@@ -242,6 +243,7 @@ homekit_accessory_t *accessories[] = {
     HOMEKIT_ACCESSORY(
         .id=2,
         .category=homekit_accessory_category_switch,
+        .config_number=4,
         .services=(homekit_service_t*[]){
             HOMEKIT_SERVICE(ACCESSORY_INFORMATION,
                 .characteristics=(homekit_characteristic_t*[]){
@@ -249,7 +251,7 @@ homekit_accessory_t *accessories[] = {
                     HOMEKIT_CHARACTERISTIC(MANUFACTURER, "HomeAccessoryKid"),
                     HOMEKIT_CHARACTERISTIC(SERIAL_NUMBER, "1"),
                     HOMEKIT_CHARACTERISTIC(MODEL, "ZemiSmart"),
-                    HOMEKIT_CHARACTERISTIC(FIRMWARE_REVISION, "0.0.3"),
+                    HOMEKIT_CHARACTERISTIC(FIRMWARE_REVISION, "0.0.4"),
                     HOMEKIT_CHARACTERISTIC(IDENTIFY, light_identify),
                     NULL
                 }),
