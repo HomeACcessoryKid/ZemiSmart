@@ -2,6 +2,8 @@
 #include <stdio.h>
 #include <string.h>
 
+#include <espressif/esp_wifi.h>
+#include <espressif/esp_sta.h>
 #include <rboot-api.h>
 #include <sysparam.h>
 
@@ -15,7 +17,7 @@ void ota_update(void) {
 }
 
 // this function is optional to couple Homekit parameters to the sysparam variables and github parameters
-int  ota_read_sysparam(char **manufacturer,char **model,char **revision) {
+int  ota_read_sysparam(char **manufacturer,char **serial,char **model,char **revision) {
     sysparam_status_t status;
     char *value;
 
@@ -33,6 +35,10 @@ int  ota_read_sysparam(char **manufacturer,char **model,char **revision) {
         *revision=value;
     } else *revision="0.0.1";
 
+    uint8_t macaddr[6];
+    sdk_wifi_get_macaddr(STATION_IF, macaddr);
+                            
+    sprintf(*serial,"%02X:%02X:%02X:%02X:%02X:%02X",macaddr[0], macaddr[1], macaddr[2], macaddr[3], macaddr[4], macaddr[5]);
     int c_hash=0;
     char version[16];
     char* rev=version;
@@ -42,7 +48,7 @@ int  ota_read_sysparam(char **manufacturer,char **model,char **revision) {
     if ((dot=strchr(rev,'.'))) {dot[0]=0; c_hash=c_hash*1000+atoi(rev); rev=dot+1;}
                                           c_hash=c_hash*1000+atoi(rev);
                                             //c_hash=c_hash*10  +configuration_variant; //possible future extension
-    printf("manuf=\'%s\' model=\'%s\' revision=\'%s\' c#=%d\n",*manufacturer,*model,*revision,c_hash);
+    printf("manuf=\'%s\' serial=\'%s\' model=\'%s\' revision=\'%s\' c#=%d\n",*manufacturer,*serial,*model,*revision,c_hash);
     return c_hash;
 }
 
