@@ -17,7 +17,7 @@ void ota_update(void) {
 }
 
 // this function is optional to couple Homekit parameters to the sysparam variables and github parameters
-int  ota_read_sysparam(char **manufacturer,char **serial,char **model,char **revision) {
+unsigned int  ota_read_sysparam(char **manufacturer,char **serial,char **model,char **revision) {
     sysparam_status_t status;
     char *value;
 
@@ -40,7 +40,7 @@ int  ota_read_sysparam(char **manufacturer,char **serial,char **model,char **rev
     *serial=malloc(18);
     sprintf(*serial,"%02X:%02X:%02X:%02X:%02X:%02X",macaddr[0], macaddr[1], macaddr[2], macaddr[3], macaddr[4], macaddr[5]);
 
-    int c_hash=0;
+    unsigned int c_hash=0;
     char version[16];
     char* rev=version;
     char* dot;
