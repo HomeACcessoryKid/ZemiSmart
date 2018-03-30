@@ -25,8 +25,6 @@
 #include <math.h>  //requires LIBS ?= hal m to be added to Makefile
 #include "mjpwm.h"
 
-#include <rboot-api.h> //include this in your own code for ota support
-
 /*static void wifi_init() {
     struct sdk_station_config wifi_config = {
         .ssid = WIFI_SSID,
@@ -163,21 +161,6 @@ void light_sat_set(homekit_value_t value) {
     lightSET();
 }
 
-void light_ota_set(homekit_value_t value) {
-    if (value.format != homekit_format_bool) {
-        printf("Invalid ota-value format: %d\n", value.format);
-        return;
-    }
-    if (value.bool_value) {
-        // these two lines are the ONLY thing needed for a repo to support ota after having started with ota-boot
-        // in ota-boot the user gets to set the wifi and the repository details and it then installs the ota-main binary
-        rboot_set_temp_rom(1); //select the OTA main routine
-        sdk_system_restart();  //#include <rboot-api.h>
-        // there is a bug in the esp SDK such that if you do not power cycle the chip after serial flashing, restart is unreliable
-    }
-}
-
-
 void light_identify_task(void *_args) {
     for (int i=0;i<5;i++) {
         mjpwm_send_duty(4095,    0,    0,    0);
@@ -197,20 +180,39 @@ void light_identify(homekit_value_t _value) {
     xTaskCreate(light_identify_task, "Light identify", 256, NULL, 2, NULL);
 }
 
+// add this section to make your device OTA capable
+// apply the four parameters in the accessories definition
+// and create the second accessory definition to add to a 'firmware update room' in your Home
+//char * manufacturer=NULL;
+char * model=NULL;
+char * revision=NULL;
+int  c_hash=0;
+int  ota_read_sysparam(char **manufacturer,char **model,char **revision);
+void ota_update(void);
+
+void light_ota_set(homekit_value_t value) {
+    if (value.format != homekit_format_bool) {
+        printf("Invalid ota-value format: %d\n", value.format);
+        return;
+    }
+    if (value.bool_value) ota_update();
+}
+// OTA add-in
+homekit_characteristic_t manufacturer = HOMEKIT_CHARACTERISTIC_(MANUFACTURER, "X");
 
 homekit_accessory_t *accessories[] = {
     HOMEKIT_ACCESSORY(
         .id=1,
         .category=homekit_accessory_category_lightbulb,
-        .config_number=4,
+        .config_number=5,
         .services=(homekit_service_t*[]){
             HOMEKIT_SERVICE(ACCESSORY_INFORMATION,
                 .characteristics=(homekit_characteristic_t*[]){
                     HOMEKIT_CHARACTERISTIC(NAME, "Light"),
-                    HOMEKIT_CHARACTERISTIC(MANUFACTURER, "HomeAccessoryKid"),
+                    &manufacturer,
                     HOMEKIT_CHARACTERISTIC(SERIAL_NUMBER, "1"),
-                    HOMEKIT_CHARACTERISTIC(MODEL, "ZemiSmart"),
-                    HOMEKIT_CHARACTERISTIC(FIRMWARE_REVISION, "0.0.4"),
+                    HOMEKIT_CHARACTERISTIC(MODEL, "model"),
+                    HOMEKIT_CHARACTERISTIC(FIRMWARE_REVISION, "revision"),
                     HOMEKIT_CHARACTERISTIC(IDENTIFY, light_identify),
                     NULL
                 }),
@@ -243,15 +245,15 @@ homekit_accessory_t *accessories[] = {
     HOMEKIT_ACCESSORY(
         .id=2,
         .category=homekit_accessory_category_switch,
-        .config_number=4,
+        .config_number=5,
         .services=(homekit_service_t*[]){
             HOMEKIT_SERVICE(ACCESSORY_INFORMATION,
                 .characteristics=(homekit_characteristic_t*[]){
                     HOMEKIT_CHARACTERISTIC(NAME, "LightOTA"),
-                    HOMEKIT_CHARACTERISTIC(MANUFACTURER, "HomeAccessoryKid"),
+                    &manufacturer,
                     HOMEKIT_CHARACTERISTIC(SERIAL_NUMBER, "1"),
-                    HOMEKIT_CHARACTERISTIC(MODEL, "ZemiSmart"),
-                    HOMEKIT_CHARACTERISTIC(FIRMWARE_REVISION, "0.0.4"),
+                    HOMEKIT_CHARACTERISTIC(MODEL, "model"),
+                    HOMEKIT_CHARACTERISTIC(FIRMWARE_REVISION, "revision"),
                     HOMEKIT_CHARACTERISTIC(IDENTIFY, light_identify),
                     NULL
                 }),
@@ -286,5 +288,6 @@ void user_init(void) {
 // 
 //         //INFO("Got IP, starting");
 //     }
+    c_hash=ota_read_sysparam(&manufacturer.value.string_value,&model,&revision);
     homekit_server_init(&config);
 }
