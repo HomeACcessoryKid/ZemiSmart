@@ -204,7 +204,7 @@ homekit_accessory_t *accessories[] = {
     HOMEKIT_ACCESSORY(
         .id=1,
         .category=homekit_accessory_category_lightbulb,
-        .config_number=7,
+        .config_number=8,
         .services=(homekit_service_t*[]){
             HOMEKIT_SERVICE(ACCESSORY_INFORMATION,
                 .characteristics=(homekit_characteristic_t*[]){
@@ -245,7 +245,7 @@ homekit_accessory_t *accessories[] = {
     HOMEKIT_ACCESSORY(
         .id=2,
         .category=homekit_accessory_category_switch,
-        .config_number=7,
+        .config_number=8,
         .services=(homekit_service_t*[]){
             HOMEKIT_SERVICE(ACCESSORY_INFORMATION,
                 .characteristics=(homekit_characteristic_t*[]){
@@ -289,5 +289,9 @@ void user_init(void) {
 //         //INFO("Got IP, starting");
 //     }
     c_hash=ota_read_sysparam(&manufacturer.value.string_value,&serial.value.string_value,&model.value.string_value,&revision.value.string_value);
+    printf("config0=%d\n",config.accessories[0]->config_number);
+    printf("config1=%d\n",config.accessories[1]->config_number);
+    config.accessories[0]->config_number=c_hash;
+    config.accessories[1]->config_number=c_hash;
     homekit_server_init(&config);
 }
