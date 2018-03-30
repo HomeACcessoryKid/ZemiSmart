@@ -184,9 +184,9 @@ void light_identify(homekit_value_t _value) {
 // apply the four parameters in the accessories definition
 // and create the second accessory definition to add to a 'firmware update room' in your Home
 homekit_characteristic_t manufacturer = HOMEKIT_CHARACTERISTIC_(MANUFACTURER,  "X");
-homekit_characteristic_t serial       = HOMEKIT_CHARACTERISTIC_(SERIAL_NUMBER, "0");
+homekit_characteristic_t serial       = HOMEKIT_CHARACTERISTIC_(SERIAL_NUMBER, "1");
 homekit_characteristic_t model        = HOMEKIT_CHARACTERISTIC_(MODEL,         "Z");
-homekit_characteristic_t revision     = HOMEKIT_CHARACTERISTIC_(FIRMWARE_REVISION, "0.0.1");
+homekit_characteristic_t revision     = HOMEKIT_CHARACTERISTIC_(FIRMWARE_REVISION,  "0.0.1");
 int  c_hash=0;
 int  ota_read_sysparam(char **manufacturer,char **serial,char **model,char **revision);
 void ota_update(void);
@@ -204,7 +204,7 @@ homekit_accessory_t *accessories[] = {
     HOMEKIT_ACCESSORY(
         .id=1,
         .category=homekit_accessory_category_lightbulb,
-        .config_number=6,
+        .config_number=7,
         .services=(homekit_service_t*[]){
             HOMEKIT_SERVICE(ACCESSORY_INFORMATION,
                 .characteristics=(homekit_characteristic_t*[]){
@@ -245,7 +245,7 @@ homekit_accessory_t *accessories[] = {
     HOMEKIT_ACCESSORY(
         .id=2,
         .category=homekit_accessory_category_switch,
-        .config_number=6,
+        .config_number=7,
         .services=(homekit_service_t*[]){
             HOMEKIT_SERVICE(ACCESSORY_INFORMATION,
                 .characteristics=(homekit_characteristic_t*[]){

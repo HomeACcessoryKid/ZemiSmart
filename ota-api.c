@@ -37,8 +37,9 @@ int  ota_read_sysparam(char **manufacturer,char **serial,char **model,char **rev
 
     uint8_t macaddr[6];
     sdk_wifi_get_macaddr(STATION_IF, macaddr);
-                            
+    *serial=malloc(18);
     sprintf(*serial,"%02X:%02X:%02X:%02X:%02X:%02X",macaddr[0], macaddr[1], macaddr[2], macaddr[3], macaddr[4], macaddr[5]);
+
     int c_hash=0;
     char version[16];
     char* rev=version;
