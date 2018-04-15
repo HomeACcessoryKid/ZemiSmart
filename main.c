@@ -183,10 +183,12 @@ void light_identify(homekit_value_t _value) {
 // add this section to make your device OTA capable
 // apply the four parameters in the accessories definition
 // and create the second accessory definition to add to a 'firmware update room' in your Home
+#include "custom_characteristics.h"
 homekit_characteristic_t manufacturer = HOMEKIT_CHARACTERISTIC_(MANUFACTURER,  "X");
 homekit_characteristic_t serial       = HOMEKIT_CHARACTERISTIC_(SERIAL_NUMBER, "1");
 homekit_characteristic_t model        = HOMEKIT_CHARACTERISTIC_(MODEL,         "Z");
 homekit_characteristic_t revision     = HOMEKIT_CHARACTERISTIC_(FIRMWARE_REVISION,  "0.0.1");
+homekit_characteristic_t ota_trigger  = HOMEKIT_CHARACTERISTIC_(CUSTOM_OTA_TRIGGER, false);
 unsigned int  ota_read_sysparam(char **manufacturer,char **serial,char **model,char **revision);
 void ota_update(void);
 
@@ -243,28 +245,9 @@ homekit_accessory_t *accessories[] = {
                     ),
                     NULL
                 }),
-            NULL
-        }),
-    HOMEKIT_ACCESSORY(
-        .id=2,
-        .category=homekit_accessory_category_switch,
-        .services=(homekit_service_t*[]){
-            HOMEKIT_SERVICE(ACCESSORY_INFORMATION,
+            HOMEKIT_SERVICE(CUSTOM_SETUP, .primary=false,
                 .characteristics=(homekit_characteristic_t*[]){
-                    HOMEKIT_CHARACTERISTIC(NAME, "LightUpdater"),
-                    &manufacturer,
-                    &serial,
-                    &model,
-                    &revision,
-                    HOMEKIT_CHARACTERISTIC(IDENTIFY, light_identify),
-                    NULL
-                }),
-            HOMEKIT_SERVICE(SWITCH, .primary=true,
-                .characteristics=(homekit_characteristic_t*[]){
-                    HOMEKIT_CHARACTERISTIC(
-                        ON, false,
-                        .setter=light_ota_set
-                    ),
+                    &ota_trigger,
                     NULL
                 }),
             NULL
