@@ -182,7 +182,7 @@ void light_identify(homekit_value_t _value) {
 
 // add this section to make your device OTA capable
 // apply the four parameters in the accessories definition
-// and create the extra service definition to be used in Eve which will show it where Home does not
+// and create the extra characteristic &ota_trigger, at the end to be used in Eve (which will show it, where Home does not)
 homekit_characteristic_t manufacturer = HOMEKIT_CHARACTERISTIC_(MANUFACTURER,  "X");
 homekit_characteristic_t serial       = HOMEKIT_CHARACTERISTIC_(SERIAL_NUMBER, "1");
 homekit_characteristic_t model        = HOMEKIT_CHARACTERISTIC_(MODEL,         "Z");
@@ -244,11 +244,6 @@ homekit_accessory_t *accessories[] = {
                         .getter=light_sat_get,
                         .setter=light_sat_set
                     ),
-                    NULL
-                }),
-            HOMEKIT_SERVICE(CUSTOM_SETUP, .primary=false,
-                .characteristics=(homekit_characteristic_t*[]){
-                    HOMEKIT_CHARACTERISTIC(NAME, "Light_FirmwareUpdate"),
                     &ota_trigger,
                     NULL
                 }),
