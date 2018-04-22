@@ -243,15 +243,7 @@ void user_init(void) {
     uart_set_baud(0, 115200);
 
     light_init();
-//    wifi_init();
-//     if (sdk_wifi_station_get_connect_status() != STATION_GOT_IP) {
-//         //INFO("Waiting for IP");
-//         while (sdk_wifi_station_get_connect_status() != STATION_GOT_IP) {
-//             vTaskDelay(1000 / portTICK_PERIOD_MS);
-//         }
-// 
-//         //INFO("Got IP, starting");
-//     }
+
     int c_hash=ota_read_sysparam(&manufacturer.value.string_value,&serial.value.string_value,
                                       &model.value.string_value,&revision.value.string_value);
     config.accessories[0]->config_number=c_hash;
