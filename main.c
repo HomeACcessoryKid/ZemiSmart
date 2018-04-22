@@ -183,12 +183,10 @@ void light_identify(homekit_value_t _value) {
 // add this section to make your device OTA capable
 // apply the four parameters in the accessories definition
 // and create the second accessory definition to add to a 'firmware update room' in your Home
-#include "custom_characteristics.h"
 homekit_characteristic_t manufacturer = HOMEKIT_CHARACTERISTIC_(MANUFACTURER,  "X");
 homekit_characteristic_t serial       = HOMEKIT_CHARACTERISTIC_(SERIAL_NUMBER, "1");
 homekit_characteristic_t model        = HOMEKIT_CHARACTERISTIC_(MODEL,         "Z");
 homekit_characteristic_t revision     = HOMEKIT_CHARACTERISTIC_(FIRMWARE_REVISION,  "0.0.1");
-homekit_characteristic_t ota_trigger  = HOMEKIT_CHARACTERISTIC_(CUSTOM_OTA_TRIGGER, false);
 unsigned int  ota_read_sysparam(char **manufacturer,char **serial,char **model,char **revision);
 void ota_update(void);
 
@@ -199,6 +197,8 @@ void light_ota_set(homekit_value_t value) {
     }
     if (value.bool_value) ota_update();
 }
+#include "custom_characteristics.h"
+homekit_characteristic_t ota_trigger  = HOMEKIT_CHARACTERISTIC_(CUSTOM_OTA_TRIGGER, false, .setter=light_ota_set);
 
 // next use this before calling homekit_server_init(&config);
 //    int c_hash=ota_read_sysparam(&manufacturer.value.string_value,&serial.value.string_value,
