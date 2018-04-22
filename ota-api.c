@@ -10,7 +10,7 @@
 // the first function is the ONLY thing needed for a repo to support ota after having started with ota-boot
 // in ota-boot the user gets to set the wifi and the repository details and it then installs the ota-main binary
 
-void ota_update(void) {
+void ota_update(void *arg) {  //arg not used
     rboot_set_temp_rom(1); //select the OTA main routine
     sdk_system_restart();  //#include <rboot-api.h>
     // there is a bug in the esp SDK such that if you do not power cycle the chip after serial flashing, restart is unreliable
@@ -57,11 +57,19 @@ unsigned int  ota_read_sysparam(char **manufacturer,char **serial,char **model,c
 
 
 #include <homekit/characteristics.h>
+#include <esplibs/libmain.h>
+#include <etstimer.h>
 
-void light_ota_set(homekit_value_t value) {
+static ETSTimer update_timer;
+
+void ota_set(homekit_value_t value) {
     if (value.format != homekit_format_bool) {
         printf("Invalid ota-value format: %d\n", value.format);
         return;
     }
-    if (value.bool_value) ota_update();
+    if (value.bool_value) {
+        //make a distinct light pattern or other feedback to the user = call identify routine
+        sdk_os_timer_setfn(&update_timer, ota_update, NULL);
+        sdk_os_timer_arm(&update_timer, 500, 0); //wait 0.5 seconds to trigger the reboot so gui can update and events sent
+    }
 }

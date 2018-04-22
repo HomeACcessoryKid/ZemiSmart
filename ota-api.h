@@ -18,10 +18,10 @@
 
 unsigned int  ota_read_sysparam(char **manufacturer,char **serial,char **model,char **revision);
 
-void ota_update(void);
+void ota_update(void *arg);
 
-void light_ota_set(homekit_value_t value);
+void ota_set(homekit_value_t value);
 
-#define API_OTA_TRIGGER HOMEKIT_CHARACTERISTIC_(CUSTOM_OTA_TRIGGER, false, .setter=light_ota_set)
+#define API_OTA_TRIGGER HOMEKIT_CHARACTERISTIC_(CUSTOM_OTA_TRIGGER, false, .setter=ota_set)
 
 #endif
