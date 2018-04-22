@@ -8,7 +8,7 @@
 #define HOMEKIT_CHARACTERISTIC_CUSTOM_OTA_TRIGGER HOMEKIT_CUSTOM_UUID("F0000001")
 #define HOMEKIT_DECLARE_CHARACTERISTIC_CUSTOM_OTA_TRIGGER(_value, ...) \
     .type = HOMEKIT_CHARACTERISTIC_CUSTOM_OTA_TRIGGER, \
-    .description = "Update firmware", \
+    .description = "FirmwareUpdate", \
     .format = homekit_format_bool, \
     .permissions = homekit_permissions_paired_read \
     | homekit_permissions_paired_write \
@@ -17,3 +17,9 @@
     ##__VA_ARGS__
     
 #endif
+
+unsigned int  ota_read_sysparam(char **manufacturer,char **serial,char **model,char **revision);
+
+void ota_update(void);
+
+void light_ota_set(homekit_value_t value);

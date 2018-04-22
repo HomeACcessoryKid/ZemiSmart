@@ -181,24 +181,15 @@ void light_identify(homekit_value_t _value) {
 }
 
 // add this section to make your device OTA capable
-// apply the four parameters in the accessories definition
-// and create the extra characteristic &ota_trigger, at the end to be used in Eve (which will show it, where Home does not)
+// create the extra characteristic &ota_trigger, at the end to be used in Eve (which will show it, where Home does not)
+// and apply the four other parameters in the accessories_information section
+
+#include "ota-api.h"
+homekit_characteristic_t ota_trigger  = HOMEKIT_CHARACTERISTIC_(CUSTOM_OTA_TRIGGER, false, .setter=light_ota_set);
 homekit_characteristic_t manufacturer = HOMEKIT_CHARACTERISTIC_(MANUFACTURER,  "X");
 homekit_characteristic_t serial       = HOMEKIT_CHARACTERISTIC_(SERIAL_NUMBER, "1");
 homekit_characteristic_t model        = HOMEKIT_CHARACTERISTIC_(MODEL,         "Z");
-homekit_characteristic_t revision     = HOMEKIT_CHARACTERISTIC_(FIRMWARE_REVISION,  "0.0.1");
-unsigned int  ota_read_sysparam(char **manufacturer,char **serial,char **model,char **revision);
-void ota_update(void);
-
-void light_ota_set(homekit_value_t value) {
-    if (value.format != homekit_format_bool) {
-        printf("Invalid ota-value format: %d\n", value.format);
-        return;
-    }
-    if (value.bool_value) ota_update();
-}
-#include "custom_characteristics.h"
-homekit_characteristic_t ota_trigger  = HOMEKIT_CHARACTERISTIC_(CUSTOM_OTA_TRIGGER, false, .setter=light_ota_set);
+homekit_characteristic_t revision     = HOMEKIT_CHARACTERISTIC_(FIRMWARE_REVISION,  "0.0.0");
 
 // next use this before calling homekit_server_init(&config);
 //    int c_hash=ota_read_sysparam(&manufacturer.value.string_value,&serial.value.string_value,
@@ -273,7 +264,6 @@ void user_init(void) {
     int c_hash=ota_read_sysparam(&manufacturer.value.string_value,&serial.value.string_value,
                                       &model.value.string_value,&revision.value.string_value);
     config.accessories[0]->config_number=c_hash;
-    //config.accessories[1]->config_number=c_hash; //is this any use?
     
     homekit_server_init(&config);
 }

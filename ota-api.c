@@ -33,7 +33,7 @@ unsigned int  ota_read_sysparam(char **manufacturer,char **serial,char **model,c
     status = sysparam_get_string("ota_version", &value);
     if (status == SYSPARAM_OK) {
         *revision=value;
-    } else *revision="0.0.1";
+    } else *revision="0.0.0";
 
     uint8_t macaddr[6];
     sdk_wifi_get_macaddr(STATION_IF, macaddr);
@@ -53,3 +53,15 @@ unsigned int  ota_read_sysparam(char **manufacturer,char **serial,char **model,c
     return c_hash;
 }
 
+
+
+
+#include <homekit/characteristics.h>
+
+void light_ota_set(homekit_value_t value) {
+    if (value.format != homekit_format_bool) {
+        printf("Invalid ota-value format: %d\n", value.format);
+        return;
+    }
+    if (value.bool_value) ota_update();
+}
