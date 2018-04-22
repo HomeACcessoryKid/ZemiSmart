@@ -183,7 +183,7 @@ void light_identify_task(void *_args) {
     vTaskDelete(NULL);
 }
 
-void light_identify(homekit_value_t _value) {
+void identify(homekit_value_t _value) {
     printf("Light Identify\n");
     xTaskCreate(light_identify_task, "Light identify", 256, NULL, 2, NULL);
 }
@@ -200,7 +200,7 @@ homekit_accessory_t *accessories[] = {
                     &serial,
                     &model,
                     &revision,
-                    HOMEKIT_CHARACTERISTIC(IDENTIFY, light_identify),
+                    HOMEKIT_CHARACTERISTIC(IDENTIFY, identify),
                     NULL
                 }),
             HOMEKIT_SERVICE(LIGHTBULB, .primary=true,
