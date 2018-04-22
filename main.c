@@ -25,16 +25,24 @@
 #include <math.h>  //requires LIBS ?= hal m to be added to Makefile
 #include "mjpwm.h"
 
-/*static void wifi_init() {
-    struct sdk_station_config wifi_config = {
-        .ssid = WIFI_SSID,
-        .password = WIFI_PASSWORD,
-    };
+// add this section to make your device OTA capable
+// create the extra characteristic &ota_trigger, at the end of the primary service (before the NULL)
+// it can be used in Eve, which will show it, where Home does not
+// and apply the four other parameters in the accessories_information section
 
-    sdk_wifi_set_opmode(STATION_MODE);
-    sdk_wifi_station_set_config(&wifi_config);
-    sdk_wifi_station_connect();
-} */
+#include "ota-api.h"
+homekit_characteristic_t ota_trigger  = API_OTA_TRIGGER;
+homekit_characteristic_t manufacturer = HOMEKIT_CHARACTERISTIC_(MANUFACTURER,  "X");
+homekit_characteristic_t serial       = HOMEKIT_CHARACTERISTIC_(SERIAL_NUMBER, "1");
+homekit_characteristic_t model        = HOMEKIT_CHARACTERISTIC_(MODEL,         "Z");
+homekit_characteristic_t revision     = HOMEKIT_CHARACTERISTIC_(FIRMWARE_REVISION,  "0.0.0");
+
+// next use these two lines before calling homekit_server_init(&config);
+//    int c_hash=ota_read_sysparam(&manufacturer.value.string_value,&serial.value.string_value,
+//                                      &model.value.string_value,&revision.value.string_value);
+//    config.accessories[0]->config_number=c_hash;
+// end of OTA add-in instructions
+
 
 //http://blog.saikoled.com/post/44677718712/how-to-convert-from-hsi-to-rgb-white
 void hsi2rgbw(float h, float s, float i, int* rgbw) {
@@ -179,23 +187,6 @@ void light_identify(homekit_value_t _value) {
     printf("Light Identify\n");
     xTaskCreate(light_identify_task, "Light identify", 256, NULL, 2, NULL);
 }
-
-// add this section to make your device OTA capable
-// create the extra characteristic &ota_trigger, at the end to be used in Eve (which will show it, where Home does not)
-// and apply the four other parameters in the accessories_information section
-
-#include "ota-api.h"
-homekit_characteristic_t ota_trigger  = HOMEKIT_CHARACTERISTIC_(CUSTOM_OTA_TRIGGER, false, .setter=light_ota_set);
-homekit_characteristic_t manufacturer = HOMEKIT_CHARACTERISTIC_(MANUFACTURER,  "X");
-homekit_characteristic_t serial       = HOMEKIT_CHARACTERISTIC_(SERIAL_NUMBER, "1");
-homekit_characteristic_t model        = HOMEKIT_CHARACTERISTIC_(MODEL,         "Z");
-homekit_characteristic_t revision     = HOMEKIT_CHARACTERISTIC_(FIRMWARE_REVISION,  "0.0.0");
-
-// next use this before calling homekit_server_init(&config);
-//    int c_hash=ota_read_sysparam(&manufacturer.value.string_value,&serial.value.string_value,
-//                                      &model.value.string_value,&revision.value.string_value);
-//    config.accessories[0]->config_number=c_hash;
-// end of OTA add-in instructions
 
 homekit_accessory_t *accessories[] = {
     HOMEKIT_ACCESSORY(

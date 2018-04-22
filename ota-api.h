@@ -15,11 +15,13 @@
     | homekit_permissions_notify, \
     .value = HOMEKIT_BOOL_(_value), \
     ##__VA_ARGS__
-    
-#endif
 
 unsigned int  ota_read_sysparam(char **manufacturer,char **serial,char **model,char **revision);
 
 void ota_update(void);
 
 void light_ota_set(homekit_value_t value);
+
+#define API_OTA_TRIGGER HOMEKIT_CHARACTERISTIC_(CUSTOM_OTA_TRIGGER, false, .setter=light_ota_set)
+
+#endif
