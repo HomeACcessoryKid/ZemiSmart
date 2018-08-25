@@ -90,7 +90,8 @@ void hsi2rgbw(float h, float s, float i, int* rgbw) {
 #define PIN_DCKI 			15
 
 float hue,sat,bri;
-bool on;
+bool  on;
+int   mode;
 
 void lightSET(void) {
     int rgbw[4];
@@ -188,6 +189,35 @@ void identify(homekit_value_t _value) {
     xTaskCreate(light_identify_task, "Light identify", 256, NULL, 2, NULL);
 }
 
+homekit_value_t mode_get() {
+    return HOMEKIT_INT(mode);
+}
+void mode_set(homekit_value_t value) {
+    if (value.format != homekit_format_int) {
+        printf("Invalid mode-value format: %d\n", value.format);
+        return;
+    }
+    printf("ModeSet: %d\n", value.int_value);
+}
+
+#define HOMEKIT_CHARACTERISTIC_CUSTOM_MODE_SELECT HOMEKIT_CUSTOM_UUID("F0000002")
+#define HOMEKIT_DECLARE_CHARACTERISTIC_CUSTOM_MODE_SELECT(_value, ...) \
+    .type = HOMEKIT_CHARACTERISTIC_CUSTOM_MODE_SELECT, \
+    .description = "ModeSelect", \
+    .format = homekit_format_int, \
+    .permissions = homekit_permissions_paired_read \
+                 | homekit_permissions_paired_write \
+                 | homekit_permissions_notify, \
+    .unit = homekit_unit_none, \
+    .min_value = (float[]) {0}, \
+    .max_value = (float[]) {9}, \
+    .min_step = (float[]) {1}, \
+    .value = HOMEKIT_INT_(_value), \
+    ##__VA_ARGS__
+
+homekit_characteristic_t mode_select = HOMEKIT_CHARACTERISTIC_(CUSTOM_MODE_SELECT, 0, .setter=mode_set, .getter=mode_get);
+
+
 homekit_accessory_t *accessories[] = {
     HOMEKIT_ACCESSORY(
         .id=1,
@@ -227,6 +257,7 @@ homekit_accessory_t *accessories[] = {
                         .setter=light_sat_set
                     ),
                     &ota_trigger,
+                    &mode_select,
                     NULL
                 }),
             NULL
@@ -246,6 +277,7 @@ void user_init(void) {
 
     int c_hash=ota_read_sysparam(&manufacturer.value.string_value,&serial.value.string_value,
                                       &model.value.string_value,&revision.value.string_value);
+    //c_hash=1010; revision.value.string_value="0.1.10"; //cheat line
     config.accessories[0]->config_number=c_hash;
     
     homekit_server_init(&config);
