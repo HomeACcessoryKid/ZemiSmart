@@ -25,8 +25,8 @@
 #include <math.h>  //requires LIBS ?= hal m to be added to Makefile
 #include "mjpwm.h"
 
-#define  BEATTIME   250 //the granularity of calculating light transitions in ms
-#define  MODES       10 //0-9
+#define  BEATTIME    50 //the granularity of calculating light transitions in ms
+#define  MODES       11 //0-9 + 10
 
 typedef struct _values {
     int hue;
@@ -50,15 +50,29 @@ values  array2[] = {
     {225,100,100,   1000,   3000}, //2
     {315,100,100,   1000,   3000}  //3
 };
-values  array3[1];
+values  array3[] = {
+    { 45,100,100,   2000,   1000}, //0
+    {135,100,100,   2000,   1000}, //1
+    {225,100,100,   2000,   1000}, //2
+    {315,100,100,   2000,   1000}, //3
+    { 45,100,100,   2000,   1000}, //0
+    {315,100,100,   2000,   1000}, //3
+    {225,100,100,   2000,   1000}, //2
+    {135,100,100,   2000,   1000}, //1
+};
 values  array4[1];
 values  array5[1];
 values  array6[1];
 values  array7[1];
 values  array8[1];
 values  array9[1];
+values  array10[] = { //for identify routine
+    {  0,100,100,      0,   300}, //0
+    {120,100,100,      0,   300}, //1
+    {240,100,100,      0,   300}  //2
+};
 
-values *array[MODES] = {array0,array1,array2,array3,array4,array5,array6,array7,array8,array9};
+values *array[MODES] = {array0,array1,array2,array3,array4,array5,array6,array7,array8,array9,array10};
 int    arrayn[MODES];
 
 #define PIN_DI 				13
@@ -67,8 +81,9 @@ int    arrayn[MODES];
 bool  on;
 float hue,sat,bri;              //homekit values
 float huet,satt,brit;           //target values
-float huen,satn,brin;           //new values
-float hueo=0,sato=0,brio=100;   //old values
+int   rt,  gt,  bt,  wt;        //target values
+int   rn,  gn,  bn,  wn;        //new values
+int   ro=0,go=0,bo=0,wo=4095;   //old values
 int   mode=0,arrayindex;
 bool  changed;
 int   transtime=-1,staytime=-1;
@@ -102,6 +117,7 @@ void mode_set(homekit_value_t value) {
     mode = value.int_value;
     changed=1;
     printf("ModeSet: %d\n", mode);
+    //set on=1 and publish
 }
 
 #define HOMEKIT_CHARACTERISTIC_CUSTOM_MODE_SELECT HOMEKIT_CUSTOM_UUID("F0000002")
@@ -115,7 +131,7 @@ void mode_set(homekit_value_t value) {
     .unit = homekit_unit_none, \
     .min_value = (float[]) {0}, \
     .max_value = (float[]) {9}, \
-    .min_step = (float[]) {1}, \
+    .min_step  = (float[]) {1}, \
     .value = HOMEKIT_INT_(_value), \
     ##__VA_ARGS__
 
@@ -166,22 +182,8 @@ void hsi2rgbw(float h, float s, float i, int* rgbw) {
     rgbw[3]=w;
 }
 
-void lightSET(void) {
-    int rgbw[4];
-    if (on) {
-        printf("h=%d,s=%d,b=%d => ",(int)huen,(int)satn,(int)brin);
-        
-        hsi2rgbw(huen,satn,brin,rgbw);
-        printf("r=%d,g=%d,b=%d,w=%d\n",rgbw[0],rgbw[1],rgbw[2],rgbw[3]);
-        
-        mjpwm_send_duty(rgbw[0],rgbw[1],rgbw[2],rgbw[3]);
-    } else {
-        printf("off\n");
-        mjpwm_send_duty(     0,      0,      0,      0 );
-    }
-}
-
 void light_loop_task(void *_args) {
+    int rgbw[4];
     while (1) {
         if (changed) {
             changed=0; arrayindex=0;
@@ -200,16 +202,29 @@ void light_loop_task(void *_args) {
             transtime=array[mode][arrayindex].transtime;
             staytime= array[mode][arrayindex].staytime;
             arrayindex++;
+            printf("huet=%3d,satt=%3d,brit=%3d => ",(int)huet,(int)satt,(int)brit);
+            hsi2rgbw(huet,satt,brit,rgbw);
+            rt=rgbw[0];gt=rgbw[1];bt=rgbw[2];wt=rgbw[3];
+            printf("rt=%4d,gt=%4d,bt=%4d,wt=%4d\n",rt,gt,bt,wt);
         }
-        printf("tt=%d,st=%d,ai=%d\n",transtime,staytime,arrayindex);
+        //printf("--- tt=%d,st=%d,index=%d\n",transtime,staytime,arrayindex);
         if (transtime>=0) {
             //calc new lightvalue using oldvalue,targetvalue and tt
-            huen=huet;satn=satt;brin=brit;
-            lightSET();                     //set      newvalue
-            hueo=huen;sato=satn;brio=brin;  //oldvalue=newvalue
+            if (transtime<=BEATTIME){
+                rn=rt; gn=gt; bn=bt; wn=wt;
+            } else {
+                rn=ro+(rt-ro)*BEATTIME/transtime;
+                gn=go+(gt-go)*BEATTIME/transtime;
+                bn=bo+(bt-bo)*BEATTIME/transtime;
+                wn=wo+(wt-wo)*BEATTIME/transtime;
+            }
+            ro=rn;go=gn;bo=bn;wo=wn;  //oldvalue=newvalue
             transtime-=BEATTIME;
+            //if (on) printf("                              rn=%4d,gn=%4d,bn=%4d,wn=%4d\n",rn,gn,bn,wn);
+            if (on) mjpwm_send_duty(rn,gn,bn,wn);
+            else    mjpwm_send_duty( 0, 0, 0, 0);
         } 
-        if (transtime<0) staytime-=BEATTIME;  //not perfectly accurate yet...(or yes?)
+        if (transtime<0) staytime-=BEATTIME;
         vTaskDelay(BEATTIME/portTICK_PERIOD_MS);
     }
 }
@@ -225,6 +240,9 @@ void light_init() {
     arrayn[7]= sizeof(array7)/sizeof(array[0][0]);
     arrayn[8]= sizeof(array8)/sizeof(array[0][0]);
     arrayn[9]= sizeof(array9)/sizeof(array[0][0]);
+    arrayn[10]= sizeof(array10)/sizeof(array[0][0]); //for identify task
+    array[0][0].hue=  0;
+    array[0][0].sat=  0;
     array[0][0].bri=100; //static bri=100 to prevent double scaling
     array[0][0].transtime  =2000; //later make it an input
     array[0][0].staytime =100000; //just a big value
@@ -238,7 +256,7 @@ void light_init() {
         .resv = 0,
     };
     mjpwm_init(PIN_DI, PIN_DCKI, 1, init_cmd);
-    on=true; hue=hueo; sat=sato; bri=brio;
+    on=true; hue=0; sat=0; bri=100; //matches rgbw-old values
     changed=1;
     xTaskCreate(light_loop_task, "Light loop", 512, NULL, 1, NULL);
 }
@@ -296,16 +314,11 @@ void light_sat_set(homekit_value_t value) {
 }
 
 void light_identify_task(void *_args) {
-    for (int i=0;i<5;i++) {
-        mjpwm_send_duty(4095,    0,    0,    0);
-        vTaskDelay(300 / portTICK_PERIOD_MS); //0.3 sec
-        mjpwm_send_duty(   0, 4095,    0,    0);
-        vTaskDelay(300 / portTICK_PERIOD_MS); //0.3 sec
-        mjpwm_send_duty(   0,    0, 4095,    0);
-        vTaskDelay(300 / portTICK_PERIOD_MS); //0.3 sec
-    }
-    lightSET();
-
+    int oldmode;
+    oldmode=mode;
+    mode=10; changed=1;
+    vTaskDelay(5000 / portTICK_PERIOD_MS); //5 sec
+    mode=oldmode; changed=1;
     vTaskDelete(NULL);
 }
 
