@@ -13,6 +13,7 @@
 #include <stdio.h>
 #include <espressif/esp_wifi.h>
 #include <espressif/esp_sta.h>
+//#include <espressif/esp_system.h> //for timestamp report only
 #include <esp/uart.h>
 #include <esp8266.h>
 #include <FreeRTOS.h>
@@ -37,12 +38,18 @@ typedef struct _values {
 } values;
 
 values  array0[1]; //this array is loaded with the homekit values
-//   hue sat bri      tt      st
+//   hue sat bri      tt      st    times in ms
 values  array1[] = {
-    {  0,100,100,      0,   1000}, //0
-    { 90,100,100,      0,   1000}, //1
-    {180,100,100,      0,   1000}, //2
-    {270,100,100,      0,   1000}  //3
+    { 57, 23,100,    500,      0}, //0
+    { 35, 50, 95,    600,      0}, //1
+    { 42, 40, 90,    400,      0}, //2
+    { 32, 50, 85,    500,      0}, //3
+    { 45, 35, 95,    600,      0}, //4
+    { 60, 20,100,    400,      0}, //5
+    { 50, 34, 90,    500,      0}, //6
+    { 42, 40, 80,    600,      0}, //7
+    { 37, 50, 90,    400,      0}, //8
+    { 30, 30, 95,    500,      0}  //9
 };
 values  array2[] = {
     { 45,100,100,   1000,   2000}, //0
@@ -58,15 +65,20 @@ values  array3[] = {
     { 45,100,100,   2000,   1000}, //0
     {315,100,100,   2000,   1000}, //3
     {225,100,100,   2000,   1000}, //2
-    {135,100,100,   2000,   1000}, //1
+    {135,100,100,   2000,   1000}  //1
 };
 values  array4[1];
 values  array5[1];
 values  array6[1];
 values  array7[1];
 values  array8[1];
-values  array9[1];
-values  array10[] = { //for identify routine
+values  array9[] = {
+    {  0,100,100,      0,   1000}, //0
+    { 90,100,100,      0,   1000}, //1
+    {180,100,100,      0,   1000}, //2
+    {270,100,100,      0,   1000}  //3
+};
+values  array10[] = { //for identify routine, not accessible from modes selector
     {  0,100,100,      0,   300}, //0
     {120,100,100,      0,   300}, //1
     {240,100,100,      0,   300}  //2
@@ -106,6 +118,7 @@ homekit_characteristic_t revision     = HOMEKIT_CHARACTERISTIC_(FIRMWARE_REVISIO
 //    config.accessories[0]->config_number=c_hash;
 // end of OTA add-in instructions
 
+
 homekit_value_t mode_get() {
     return HOMEKIT_INT(mode);
 }
@@ -117,7 +130,10 @@ void mode_set(homekit_value_t value) {
     mode = value.int_value;
     changed=1;
     printf("ModeSet: %d\n", mode);
-    //set on=1 and publish
+    if (mode) { //set on=1 and publish
+        on=true;
+        //homekit_characteristic_notify(&on, HOMEKIT_INT(mode)); //publish mode (not yet supported in accessory defintion)
+    }
 }
 
 #define HOMEKIT_CHARACTERISTIC_CUSTOM_MODE_SELECT HOMEKIT_CUSTOM_UUID("F0000002")
@@ -136,6 +152,38 @@ void mode_set(homekit_value_t value) {
     ##__VA_ARGS__
 
 homekit_characteristic_t mode_select = HOMEKIT_CHARACTERISTIC_(CUSTOM_MODE_SELECT, 0, .setter=mode_set, .getter=mode_get);
+
+
+
+homekit_value_t fader_get() {
+    return HOMEKIT_INT(array[0][0].transtime/1000);
+}
+void fader_set(homekit_value_t value) {
+    if (value.format != homekit_format_int) {
+        printf("Invalid fader-value format: %d\n", value.format);
+        return;
+    }
+    array[0][0].transtime = value.int_value*1000;
+    changed=1;
+    printf("FaderSpeed: %d\n", array[0][0].transtime);
+}
+
+#define HOMEKIT_CHARACTERISTIC_CUSTOM_FADER_SPEED HOMEKIT_CUSTOM_UUID("F0000003")
+#define HOMEKIT_DECLARE_CHARACTERISTIC_CUSTOM_FADER_SPEED(_value, ...) \
+    .type = HOMEKIT_CHARACTERISTIC_CUSTOM_FADER_SPEED, \
+    .description = "Speed of Fading", \
+    .format = homekit_format_int, \
+    .permissions = homekit_permissions_paired_read \
+                 | homekit_permissions_paired_write \
+                 | homekit_permissions_notify, \
+    .unit = homekit_unit_seconds, \
+    .min_value = (float[]) { 0}, \
+    .max_value = (float[]) {10}, \
+    .min_step  = (float[]) { 1}, \
+    .value = HOMEKIT_INT_(_value), \
+    ##__VA_ARGS__
+
+homekit_characteristic_t fader_speed = HOMEKIT_CHARACTERISTIC_(CUSTOM_FADER_SPEED, 2, .setter=fader_set, .getter=fader_get);
 
 
 
@@ -183,10 +231,12 @@ void hsi2rgbw(float h, float s, float i, int* rgbw) {
 }
 
 void light_loop_task(void *_args) {
-    int rgbw[4];
+    int rgbw[4],oldmode=0;
     while (1) {
         if (changed) {
-            changed=0; arrayindex=0;
+            vTaskDelay(200/portTICK_PERIOD_MS); //to remove excessive updates from EVE
+            changed=0;
+            if (mode!=oldmode) {arrayindex=0; oldmode=mode;}
             array[0][0].hue=hue;array[0][0].sat=sat; //bri=100 at init to prevent double scaling
             transtime=-1; staytime=-1; //forces re-reading array
             if (!on) { //this is the escape from any other modes
@@ -194,7 +244,7 @@ void light_loop_task(void *_args) {
                 homekit_characteristic_notify(&mode_select, HOMEKIT_INT(mode)); //publish mode
             }
         }
-        if (transtime<0 && staytime<=0) {
+        if (transtime<0 && staytime<=0) { //time to read a new array entry
             if (arrayindex>=arrayn[mode]) arrayindex=0;
             huet=     array[mode][arrayindex].hue;      //read targetvalues from array
             satt=     array[mode][arrayindex].sat;
@@ -202,10 +252,10 @@ void light_loop_task(void *_args) {
             transtime=array[mode][arrayindex].transtime;
             staytime= array[mode][arrayindex].staytime;
             arrayindex++;
-            printf("huet=%3d,satt=%3d,brit=%3d => ",(int)huet,(int)satt,(int)brit);
+            //printf("hue=%3d,sat=%3d,bri=%3d => ",(int)huet,(int)satt,(int)brit);
             hsi2rgbw(huet,satt,brit,rgbw);
             rt=rgbw[0];gt=rgbw[1];bt=rgbw[2];wt=rgbw[3];
-            printf("rt=%4d,gt=%4d,bt=%4d,wt=%4d\n",rt,gt,bt,wt);
+            //printf("r=%4d,g=%4d,b=%4d,w=%4d\n",rt,gt,bt,wt);
         }
         //printf("--- tt=%d,st=%d,index=%d\n",transtime,staytime,arrayindex);
         if (transtime>=0) {
@@ -220,7 +270,7 @@ void light_loop_task(void *_args) {
             }
             ro=rn;go=gn;bo=bn;wo=wn;  //oldvalue=newvalue
             transtime-=BEATTIME;
-            //if (on) printf("                              rn=%4d,gn=%4d,bn=%4d,wn=%4d\n",rn,gn,bn,wn);
+            //if (on) printf("                       rn=%4d,gn=%4d,bn=%4d,wn=%4d\n",rn,gn,bn,wn);
             if (on) mjpwm_send_duty(rn,gn,bn,wn);
             else    mjpwm_send_duty( 0, 0, 0, 0);
         } 
@@ -269,7 +319,8 @@ void light_on_set(homekit_value_t value) {
         printf("Invalid on-value format: %d\n", value.format);
         return;
     }
-    printf("O:");
+    //printf("O:%3d @ %d\n",value.bool_value,sdk_system_get_time());
+    printf("O:%3d\n",value.bool_value);
     on = value.bool_value;
     changed=1;
 }
@@ -282,7 +333,8 @@ void light_bri_set(homekit_value_t value) {
         printf("Invalid bri-value format: %d\n", value.format);
         return;
     }
-    printf("B:");
+    //printf("B:%3d @ %d\n",value.int_value,sdk_system_get_time());
+    printf("B:%3d\n",value.int_value);
     bri = value.int_value;
     changed=1;
 }
@@ -295,7 +347,8 @@ void light_hue_set(homekit_value_t value) {
         printf("Invalid hue-value format: %d\n", value.format);
         return;
     }
-    printf("H:");
+    //printf("H:%3.0f @ %d\n",value.float_value,sdk_system_get_time());
+    printf("H:%3.0f\n",value.float_value);
     hue = value.float_value;
     changed=1;
 }
@@ -308,7 +361,8 @@ void light_sat_set(homekit_value_t value) {
         printf("Invalid sat-value format: %d\n", value.format);
         return;
     }
-    printf("S:");
+    //printf("S:%3.0f @ %d\n",value.float_value,sdk_system_get_time());
+    printf("S:%3.0f\n",value.float_value);
     sat = value.float_value;
     changed=1;
 }
@@ -368,6 +422,7 @@ homekit_accessory_t *accessories[] = {
                     ),
                     &ota_trigger,
                     &mode_select,
+                    &fader_speed,
                     NULL
                 }),
             NULL
@@ -387,7 +442,7 @@ void user_init(void) {
 
     int c_hash=ota_read_sysparam(&manufacturer.value.string_value,&serial.value.string_value,
                                       &model.value.string_value,&revision.value.string_value);
-    //c_hash=1010; revision.value.string_value="0.1.10"; //cheat line
+    //c_hash=1013; revision.value.string_value="0.1.13"; //cheat line
     config.accessories[0]->config_number=c_hash;
     
     homekit_server_init(&config);
