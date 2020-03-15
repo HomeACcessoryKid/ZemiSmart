@@ -25,6 +25,10 @@
 
 #include <math.h>  //requires LIBS ?= hal m to be added to Makefile
 #include "mjpwm.h"
+#include <udplogger.h>
+
+#define  UDPLOG_PRINTF_TO_UDP     
+#define  UDPLOG_PRINTF_ALSO_SERIAL
 
 #define  BEATTIME    50 //the granularity of calculating light transitions in ms
 #define  MODES       11 //0-9 + 10
@@ -306,6 +310,7 @@ void light_init() {
         .resv = 0,
     };
     mjpwm_init(PIN_DI, PIN_DCKI, 1, init_cmd);
+    mjpwm_send_duty( 0, 0, 0, 4095);
     on=true; hue=0; sat=0; bri=100; //matches rgbw-old values
     changed=1;
     xTaskCreate(light_loop_task, "Light loop", 512, NULL, 1, NULL);
@@ -437,6 +442,8 @@ homekit_server_config_t config = {
 
 void user_init(void) {
     uart_set_baud(0, 115200);
+    udplog_init(2);
+    UDPLUS("\n\n\nZemiSmart 0.3.0\n");
 
     light_init();
 
