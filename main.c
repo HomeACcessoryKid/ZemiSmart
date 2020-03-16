@@ -1,4 +1,4 @@
-/*  (c) 2018 HomeAccessoryKid
+/*  (c) 2018-2020 HomeAccessoryKid
  *  This example makes an RGBW smart lightbulb as offered on e.g. alibaba
  *  with the brand of ZemiSmart. It uses an ESP8266 with a 1MB flash on a 
  *  TYLE1R printed circuit board by TuyaSmart (also used in AiLight).
@@ -26,9 +26,6 @@
 #include <math.h>  //requires LIBS ?= hal m to be added to Makefile
 #include "mjpwm.h"
 #include <udplogger.h>
-
-#define  UDPLOG_PRINTF_TO_UDP     
-#define  UDPLOG_PRINTF_ALSO_SERIAL
 
 #define  BEATTIME    50 //the granularity of calculating light transitions in ms
 #define  MODES       11 //0-9 + 10
