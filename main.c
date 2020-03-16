@@ -27,6 +27,10 @@
 #include "mjpwm.h"
 #include <udplogger.h>
 
+#ifndef VERSION
+ #error You must set VERSION=x.y.z to match github version tag x.y.z
+#endif
+
 #define  BEATTIME    50 //the granularity of calculating light transitions in ms
 #define  MODES       11 //0-9 + 10
 
@@ -440,7 +444,7 @@ homekit_server_config_t config = {
 void user_init(void) {
     uart_set_baud(0, 115200);
     udplog_init(2);
-    UDPLUS("\n\n\nZemiSmart 0.3.0\n");
+    UDPLUS("\n\n\nZemiSmart " VERSION "\n");
 
     light_init();
 
