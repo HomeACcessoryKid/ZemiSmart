@@ -18,6 +18,7 @@
 #include <esp8266.h>
 #include <FreeRTOS.h>
 #include <task.h>
+#include <espressif/esp8266/eagle_soc.h>
 
 #include <homekit/homekit.h>
 #include <homekit/characteristics.h>
@@ -31,8 +32,10 @@
  #error You must set VERSION=x.y.z to match github version tag x.y.z
 #endif
 
-#define  BEATTIME    50 //the granularity of calculating light transitions in ms
-#define  MODES       11 //0-9 + 10
+#define RTC_ADDR    0x600013B0
+#define RTC_MAGIC   0xaabecede
+#define BEATTIME    50 //the granularity of calculating light transitions in ms
+#define MODES       11 //0-9 + 10
 
 typedef struct _values {
     int hue;
@@ -133,10 +136,13 @@ void mode_set(homekit_value_t value) {
         return;
     }
     mode = value.int_value;
+    WRITE_PERI_REG(RTC_ADDR+4,mode); //int
     changed=1;
     printf("ModeSet: %d\n", mode);
     if (mode) { //set on=1 and publish
         on=true;
+        uint32_t *dp;
+        dp=(void*)&on;   WRITE_PERI_REG(RTC_ADDR+8,*dp); //bool
         //homekit_characteristic_notify(&on, HOMEKIT_INT(mode)); //publish mode (not yet supported in accessory defintion)
     }
 }
@@ -246,6 +252,7 @@ void light_loop_task(void *_args) {
             transtime=-1; staytime=-1; //forces re-reading array
             if (!on) { //this is the escape from any other modes
                 mode=0;
+                WRITE_PERI_REG(RTC_ADDR+4,mode); //int
                 homekit_characteristic_notify(&mode_select, HOMEKIT_INT(mode)); //publish mode
             }
         }
@@ -313,6 +320,14 @@ void light_init() {
     mjpwm_init(PIN_DI, PIN_DCKI, 1, init_cmd);
     mjpwm_send_duty( 0, 0, 0, 4095);
     on=true; hue=0; sat=0; bri=100; //matches rgbw-old values
+    uint32_t *dp;
+	if (READ_PERI_REG(RTC_ADDR)==RTC_MAGIC) {
+	    mode                =READ_PERI_REG(RTC_ADDR+ 4); //int
+        dp=(void*)&on;   *dp=READ_PERI_REG(RTC_ADDR+ 8); //bool
+        dp=(void*)&hue;  *dp=READ_PERI_REG(RTC_ADDR+12); //float
+        dp=(void*)&sat;  *dp=READ_PERI_REG(RTC_ADDR+16); //float
+        dp=(void*)&bri;  *dp=READ_PERI_REG(RTC_ADDR+20); //float
+    }
     changed=1;
     xTaskCreate(light_loop_task, "Light loop", 512, NULL, 1, NULL);
 }
@@ -329,6 +344,8 @@ void light_on_set(homekit_value_t value) {
     printf("O:%3d\n",value.bool_value);
     on = value.bool_value;
     changed=1;
+    uint32_t *dp;
+    dp=(void*)&on;   WRITE_PERI_REG(RTC_ADDR+8,*dp); //bool
 }
 
 homekit_value_t light_bri_get() {
@@ -343,6 +360,8 @@ void light_bri_set(homekit_value_t value) {
     printf("B:%3d\n",value.int_value);
     bri = value.int_value;
     changed=1;
+    uint32_t *dp;
+    dp=(void*)&bri;   WRITE_PERI_REG(RTC_ADDR+20,*dp); //float
 }
 
 homekit_value_t light_hue_get() {
@@ -357,6 +376,8 @@ void light_hue_set(homekit_value_t value) {
     printf("H:%3.0f\n",value.float_value);
     hue = value.float_value;
     changed=1;
+    uint32_t *dp;
+    dp=(void*)&hue;   WRITE_PERI_REG(RTC_ADDR+12,*dp); //float
 }
 
 homekit_value_t light_sat_get() {
@@ -371,6 +392,8 @@ void light_sat_set(homekit_value_t value) {
     printf("S:%3.0f\n",value.float_value);
     sat = value.float_value;
     changed=1;
+    uint32_t *dp;
+    dp=(void*)&sat;   WRITE_PERI_REG(RTC_ADDR+16,*dp); //float
 }
 
 void light_identify_task(void *_args) {
